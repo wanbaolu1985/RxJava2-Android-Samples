@@ -23,6 +23,7 @@ public class ReplaySubjectExampleActivity extends AppCompatActivity {
     private static final String TAG = ReplaySubjectExampleActivity.class.getSimpleName();
     Button btn;
     TextView textView;
+    SubjectObserverBuilder observerBuilder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +31,7 @@ public class ReplaySubjectExampleActivity extends AppCompatActivity {
         setContentView(R.layout.activity_example);
         btn = (Button) findViewById(R.id.btn);
         textView = (TextView) findViewById(R.id.textView);
+        observerBuilder = new SubjectObserverBuilder(TAG, textView);
 
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -42,89 +44,27 @@ public class ReplaySubjectExampleActivity extends AppCompatActivity {
     /* ReplaySubject emits to any observer all of the items that were emitted
      * by the source Observable, regardless of when the observer subscribes.
      */
+    private boolean flag;
     private void doSomeWork() {
-
         ReplaySubject<Integer> source = ReplaySubject.create();
 
-        source.subscribe(getFirstObserver()); // it will get 1, 2, 3, 4
-
+        observerBuilder.resetIndentCount();
+        source.subscribe(observerBuilder.buildObserver("First"));
         source.onNext(1);
         source.onNext(2);
         source.onNext(3);
+        source.subscribe(observerBuilder.buildObserver("Second"));
         source.onNext(4);
-        source.onComplete();
-
-        /*
-         * it will emit 1, 2, 3, 4 for second observer also as we have used replay
-         */
-        source.subscribe(getSecondObserver());
-
+        source.subscribe(observerBuilder.buildObserver("Third"));
+        if (flag) {
+            source.onComplete();
+        } else {
+            source.onError(new Throwable());
+        }
+        flag = !flag;
+        source.subscribe(observerBuilder.buildObserver("Fourth"));
+        textView.append("========================");
+        textView.append(AppConstant.LINE_SEPARATOR);
+        Log.d(TAG,      "========================");
     }
-
-
-    private Observer<Integer> getFirstObserver() {
-        return new Observer<Integer>() {
-
-            @Override
-            public void onSubscribe(Disposable d) {
-                Log.d(TAG, " First onSubscribe : " + d.isDisposed());
-            }
-
-            @Override
-            public void onNext(Integer value) {
-                textView.append(" First onNext : value : " + value);
-                textView.append(AppConstant.LINE_SEPARATOR);
-                Log.d(TAG, " First onNext value : " + value);
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                textView.append(" First onError : " + e.getMessage());
-                textView.append(AppConstant.LINE_SEPARATOR);
-                Log.d(TAG, " First onError : " + e.getMessage());
-            }
-
-            @Override
-            public void onComplete() {
-                textView.append(" First onComplete");
-                textView.append(AppConstant.LINE_SEPARATOR);
-                Log.d(TAG, " First onComplete");
-            }
-        };
-    }
-
-    private Observer<Integer> getSecondObserver() {
-        return new Observer<Integer>() {
-
-            @Override
-            public void onSubscribe(Disposable d) {
-                textView.append(" Second onSubscribe : isDisposed :" + d.isDisposed());
-                Log.d(TAG, " Second onSubscribe : " + d.isDisposed());
-                textView.append(AppConstant.LINE_SEPARATOR);
-            }
-
-            @Override
-            public void onNext(Integer value) {
-                textView.append(" Second onNext : value : " + value);
-                textView.append(AppConstant.LINE_SEPARATOR);
-                Log.d(TAG, " Second onNext value : " + value);
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                textView.append(" Second onError : " + e.getMessage());
-                textView.append(AppConstant.LINE_SEPARATOR);
-                Log.d(TAG, " Second onError : " + e.getMessage());
-            }
-
-            @Override
-            public void onComplete() {
-                textView.append(" Second onComplete");
-                textView.append(AppConstant.LINE_SEPARATOR);
-                Log.d(TAG, " Second onComplete");
-            }
-        };
-    }
-
-
 }
